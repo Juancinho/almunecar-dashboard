@@ -54,3 +54,11 @@ Las fechas pueden ir en cualquiera de los formatos que ya se usan (`AAAA-MM-DD H
 - `trades[].mae_eur` / `mfe_eur`: la peor y la mejor excursión de cada operación mientras estuvo abierta. Sirven para saber si los stops están demasiado ajustados o si se deja dinero en la mesa.
 - `trades[].signal`: la puntuación o confianza de la señal de entrada, para comparar la calidad de la señal con el resultado.
 - `plan.candidates` con puntuación: `[{ "symbol": "IDTP", "score": 0.72 }]` en lugar de solo el texto.
+
+## Añadido en v3 (lo emite ya dashboard.py)
+- `bench`: principal **MSCI ACWI (EUR)**, con `secondary` = SPY (EUR) y SOX (EUR). Cada índice se rebasa a 1.000 € en su primer punto. Fuente: snapshots de IBKR (ACWI 49954154, SPY 756733, índice SOX de PHLX 416898). El paso a euros usa el EUR/USD de `fx_src`.
+- `fx_eurusd` y `fx_src`: el cambio sale de IBKR EUR.USD, del BCE vía Frankfurter o del BCE SDMX. Nunca es una estimación.
+- `rf` y `rf_src`: FRED DTB3 (letra del Tesoro a 3 meses), con fecha.
+- `start`: fecha de arranque del bot. El calendario y la tabla mensual empiezan ahí.
+- `limits`: tope por posición, halt, posiciones máximas y compras por semana (con las de esta semana).
+- `intel`: posturas, convicción, blackouts (con `active`) y catalizadores de `intel.json`.
