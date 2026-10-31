@@ -69,7 +69,7 @@ export function DrawdownChart({ data }: { data: CurvePt[] }) {
       </linearGradient></defs>
       <CartesianGrid stroke="var(--grid)" vertical={false} />
       <XAxis dataKey="t" {...axis} tickFormatter={xFmt(data)} minTickGap={56} dy={6} />
-      <YAxis {...axis} domain={[lo * 1.15, 0]} tickFormatter={v => pct(v, lo > -0.05 ? 1 : 0)} width={52} orientation="right" />
+      <YAxis {...axis} domain={[Math.min(lo * 1.15, -0.01), 0]} tickFormatter={v => pct(v, lo > -0.05 ? 1 : 0)} width={52} orientation="right" />
       <Tooltip cursor={{ stroke: "var(--neg)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
         if (!active || !payload?.length) return null; const p = payload[0].payload as CurvePt;
         return <Tip title={longDate(p.t)} rows={[{ k: "Caída desde máximo", v: sPct(p.dd), c: p.dd < 0 ? "neg" : "", dot: "var(--neg)" }, { k: "Máximo previo", v: eur(p.peak) }]} />;
@@ -256,7 +256,7 @@ export function BenchChart({ series, name }: { series: NonNullable<Metrics["benc
     <LineChart data={series} margin={{ top: 12, right: 4, left: 0, bottom: 0 }}>
       <CartesianGrid stroke="var(--grid)" vertical={false} />
       <XAxis dataKey="t" {...axis} tickFormatter={xFmt(series)} minTickGap={56} dy={6} />
-      <YAxis {...axis} domain={[lo - pad, hi + pad]} tickFormatter={v => num(v, 0)} width={44} orientation="right" />
+      <YAxis {...axis} domain={[lo - pad, hi + pad]} tickFormatter={v => num(v, hi - lo < 5 ? 1 : 0)} width={44} orientation="right" />
       <ReferenceLine y={100} stroke="var(--ink-3)" strokeDasharray="3 5" strokeOpacity={0.6} />
       <Tooltip cursor={{ stroke: "var(--accent)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
         if (!active || !payload?.length) return null; const p = payload[0].payload as (typeof series)[number];
