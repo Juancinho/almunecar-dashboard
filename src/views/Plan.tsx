@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ago, hhmm, longDate, madridEpoch, pct, sEur, tone, usd } from "../metrics";
 import { DivergingBars, HBars } from "../charts";
-import { Card, Empty, useNow } from "../ui";
+import { Card, Empty, Icon, useNow } from "../ui";
 import type { ViewProps } from "./shared";
 
 export default function Plan({ d, m, open }: ViewProps) {
@@ -53,13 +53,13 @@ export default function Plan({ d, m, open }: ViewProps) {
               <td className="muted">{x.notes ?? ""}</td></tr>;
           })}</tbody></table></div>
         <div className="lbl" style={{ marginTop: 16 }}>Blackouts por eventos</div>
-        {d.intel.blackouts.length ? <ul className="evals">{d.intel.blackouts.map((b, i) => <li key={i}>
+        {d.intel.blackouts.length ? <ul className="evals events">{d.intel.blackouts.map((b, i) => <li key={i}>
           <b>{b.active ? "ACTIVO" : longDate(b.start)}</b><span>{b.symbol ? `${b.symbol}: ` : ""}{b.reason}{b.verified || /verificad/i.test(b.reason) ? "" : " (no verificado)"}</span><time>{hhmm(b.start)}–{hhmm(b.end)}</time></li>)}</ul>
           : <p className="muted">Sin blackouts próximos.</p>}
         <div className="lbl" style={{ marginTop: 16 }}>Próximos catalizadores</div>
-        {d.intel.catalysts.length ? <ul className="evals">{d.intel.catalysts.map((c, i) => <li key={i}>
+        {d.intel.catalysts.length ? <ul className="evals events">{d.intel.catalysts.map((c, i) => <li key={i}>
           <b>{c.date ? longDate(c.date) : "sin fecha"}</b><span>{c.symbol ? `${c.symbol}: ` : ""}{c.event}{c.verified || /verificad/i.test(c.event) ? "" : " (no verificado)"}</span>
-          <time>{c.source ? <a href={c.source} target="_blank" rel="noreferrer">fuente</a> : ""}</time></li>)}</ul> : <p className="muted">Sin catalizadores.</p>}
+          {c.source ? <a className="src-link" href={c.source} target="_blank" rel="noreferrer" title={c.source}>Fuente<Icon n="ext" s={13} /></a> : <span />}</li>)}</ul> : <p className="muted">Sin catalizadores.</p>}
       </>}
     </Card>
     <Card title="Tesis de inversión" icon="book" sub="Resultado, exposición y posiciones de cada tesis" className="span-7 rise">

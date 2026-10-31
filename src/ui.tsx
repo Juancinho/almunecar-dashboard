@@ -75,6 +75,7 @@ const P: Record<string, string> = {
   cpu: "M6.5 4.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2ZM8 8h4v4H8V8ZM8 2v2.5M12 2v2.5M8 15.5V18M12 15.5V18M2 8h2.5M2 12h2.5M15.5 8H18M15.5 12H18",
   info: "M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM10 9v4.5M10 6.5h.01",
   hist: "M3.5 16.5h13M5 16.5V11M8.5 16.5V6M12 16.5V8.5M15.5 16.5V12.5",
+  ext: "M8.5 4.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3M11.5 4.5h4v4M15.5 4.5 9.5 10.5",
 };
 export function Icon({ n, s = 18 }: { n: keyof typeof P | string; s?: number }) {
   return <svg width={s} height={s} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={P[n]} /></svg>;
