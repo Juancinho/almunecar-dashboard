@@ -14,9 +14,19 @@ export interface Data {
   last_eval?: Record<string, { t: string; why: string }>;
   friction: Record<string, number>; theses: Record<string, string>;
   // ---- v2, todos opcionales: el panel los usa si existen (ver docs/datos-v2.md) ----
-  bench?: { name: string; curve: Point[] };  // índice de referencia en los mismos instantes que `curve` (precio o valor, se normaliza)
+  bench?: { name: string; curve: Point[]; secondary?: { name: string; curve: Point[] }[]; source?: string };  // principal (MSCI ACWI EUR) + secundarios  // índice de referencia en los mismos instantes que `curve` (precio o valor, se normaliza)
   fx_eurusd?: number;                         // USD por 1 EUR, para pasar riesgo y costes a euros
-  rf?: number;                                // tipo libre de riesgo anual (0.025 = 2,5 %) para Sharpe y alpha
+  rf?: number; rf_src?: string; fx_src?: string; start?: string;
+  limits?: { max_pos_pct: number; halt_pct: number; max_positions: number; max_trades_week: number; trades_this_week: number; target_usd: number; cost_to_gain_max: number };
+  intel?: Intel;
+                                // tipo libre de riesgo anual (0.025 = 2,5 %) para Sharpe y alpha
   orders?: Order[];                           // órdenes vivas en IBKR (stops, límites…)
   bot?: BotInfo;                              // latido y estado del proceso
+}
+export interface Intel {
+  generated_at: string | null; stale: boolean; warn: string | null;
+  theses: Record<string, { stance: string; conviction: number; summary: string }>;
+  instruments: Record<string, { thesis: string; stance: string; conviction: number; notes?: string | null }>;
+  blackouts: { start: string; end: string; reason: string; verified: boolean; symbol?: string | null; active: boolean; source?: string | null }[];
+  catalysts: { date: string | null; event: string; verified: boolean; symbol?: string | null; source?: string | null }[];
 }

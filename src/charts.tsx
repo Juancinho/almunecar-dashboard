@@ -69,7 +69,8 @@ export function DrawdownChart({ data }: { data: CurvePt[] }) {
       </linearGradient></defs>
       <CartesianGrid stroke="var(--grid)" vertical={false} />
       <XAxis dataKey="t" {...axis} tickFormatter={xFmt(data)} minTickGap={56} dy={6} />
-      <YAxis {...axis} domain={[Math.min(lo * 1.15, -0.01), 0]} tickFormatter={v => pct(v, lo > -0.05 ? 1 : 0)} width={52} orientation="right" />
+      <YAxis {...axis} domain={lo >= -0.01 ? [-0.01, 0] : [lo * 1.15, 0]} ticks={lo >= -0.01 ? [0, -0.0025, -0.005, -0.0075, -0.01] : undefined}
+        tickFormatter={v => pct(v, lo >= -0.01 ? 2 : lo > -0.05 ? 1 : 0)} width={58} orientation="right" />
       <Tooltip cursor={{ stroke: "var(--neg)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
         if (!active || !payload?.length) return null; const p = payload[0].payload as CurvePt;
         return <Tip title={longDate(p.t)} rows={[{ k: "Caída desde máximo", v: sPct(p.dd), c: p.dd < 0 ? "neg" : "", dot: "var(--neg)" }, { k: "Máximo previo", v: eur(p.peak) }]} />;
@@ -187,12 +188,16 @@ export function Spark({ values, w = 120, h = 36 }: { values: number[]; w?: numbe
 
 /* ---------- Calendario de rendimiento diario (divergente: rojo · gris · verde) ---------- */
 const WD = ["L", "M", "X", "J", "V"];
-export function CalendarHeat({ daily, weeks = 18 }: { daily: DayRet[]; weeks?: number }) {
+export function CalendarHeat({ daily, weeks: maxWeeks = 18, start }: { daily: DayRet[]; weeks?: number; start?: string }) {
   const [tip, setTip] = useState<{ x: number; y: number; d: DayRet } | null>(null);
   const grid = useMemo(() => {
     const map = new Map(daily.map(d => [d.day, d]));
     const last = daily.length ? new Date(daily[daily.length - 1].day + "T12:00") : new Date();
-    const monday = new Date(last); monday.setDate(last.getDate() - ((last.getDay() + 6) % 7) - (weeks - 1) * 7);
+    // empieza en la semana de arranque del bot (start), sin columnas vacías anteriores
+    const lastMon = new Date(last); lastMon.setDate(last.getDate() - ((last.getDay() + 6) % 7));
+    let weeks = maxWeeks;
+    if (start) { const s0 = new Date(start + "T12:00"); s0.setDate(s0.getDate() - ((s0.getDay() + 6) % 7)); weeks = Math.max(1, Math.min(maxWeeks, Math.round((lastMon.getTime() - s0.getTime()) / 6048e5) + 1)); }
+    const monday = new Date(lastMon); monday.setDate(lastMon.getDate() - (weeks - 1) * 7);
     const maxAbs = Math.max(0.004, ...daily.map(d => Math.abs(d.ret)));
     const cols: { key: string; month: string | null; cells: ({ day: string; d?: DayRet; a: number } | null)[] }[] = [];
     let prevMonth = -1;
@@ -209,7 +214,7 @@ export function CalendarHeat({ daily, weeks = 18 }: { daily: DayRet[]; weeks?: n
     }
     for (let i = 0; i < cols.length; i++) if (cols[i].month && cols.slice(i + 1, i + 3).some(c => c.month)) cols[i].month = null; // evita etiquetas pegadas
     return cols;
-  }, [daily, weeks]);
+  }, [daily, maxWeeks, start]);
   return <div className="cal" onMouseLeave={() => setTip(null)}>
     <div className="cal-wd">{WD.map(d => <span key={d}>{d}</span>)}</div>
     <div className="cal-g">
@@ -314,13 +319,15 @@ export function Histogram({ data, tail, unit, height = 220 }: { data: Bin[]; tai
 }
 
 /* ---------- Rentabilidad mensual (tabla de calor) ---------- */
-export function MonthlyTable({ rows }: { rows: Metrics["monthly"] }) {
+export function MonthlyTable({ rows, start }: { rows: Metrics["monthly"]; start?: string }) {
+  // un solo año y es el de arranque: las columnas empiezan en el mes de arranque del bot
+  const from = start && rows.length === 1 && String(rows[0].year) === start.slice(0, 4) ? Number(start.slice(5, 7)) - 1 : 0;
   const max = Math.max(0.005, ...rows.flatMap(r => r.months.filter((x): x is number => x != null).map(Math.abs)));
   const cell = (v: number | null) => v == null ? <td className="mt-c none" /> :
     <td className={`mt-c ${v > 0 ? "up" : v < 0 ? "dn" : "flat"}`} style={{ ["--a" as string]: (0.18 + 0.82 * Math.min(1, Math.abs(v) / max)).toFixed(2) }}><span>{sPct(v)}</span></td>;
   return <div className="tw"><table className="mt">
-    <thead><tr><th />{MONTHS.map(m => <th key={m}>{m}</th>)}<th>Año</th></tr></thead>
-    <tbody>{rows.map(r => <tr key={r.year}><th>{r.year}</th>{r.months.map((v, i) => <Fragment key={i}>{cell(v)}</Fragment>)}<td className={`mt-y ${tone(r.total)}`}>{sPct(r.total)}</td></tr>)}</tbody>
+    <thead><tr><th />{MONTHS.slice(from).map(m => <th key={m}>{m}</th>)}<th>Año</th></tr></thead>
+    <tbody>{rows.map(r => <tr key={r.year}><th>{r.year}</th>{r.months.slice(from).map((v, i) => <Fragment key={i}>{cell(v)}</Fragment>)}<td className={`mt-y ${tone(r.total)}`}>{sPct(r.total)}</td></tr>)}</tbody>
   </table></div>;
 }
 

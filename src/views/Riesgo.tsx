@@ -33,6 +33,11 @@ export default function Riesgo({ d, m, open }: ViewProps) {
         <Stat k="Mayor posición" v={pct(m.maxWeight)} help="Peso de la posición más grande sobre el equity" />
         <Stat k="Posiciones efectivas" v={hasPos ? num(m.effN, 1) : "—"} help="1 / Σ peso². Indica a cuántas posiciones iguales equivale la cartera: cuanto más baja, más concentrada." />
       </dl>
+      {d.limits && <dl className="stats three" style={{ marginTop: 12 }}>
+        <Stat k="Tope por posición" v={pct(d.limits.max_pos_pct, 0)} c={m.maxWeight > d.limits.max_pos_pct ? "neg" : ""} help={`Máximo del equity virtual por posición. Margen hasta el tope en la mayor posición: ${pct(Math.max(0, d.limits.max_pos_pct - m.maxWeight), 1)}`} />
+        <Stat k="Posiciones" v={`${m.positions.length} / ${d.limits.max_positions}`} />
+        <Stat k="Compras esta semana" v={`${d.limits.trades_this_week} / ${d.limits.max_trades_week}`} />
+      </dl>}
       <div className="lbl" style={{ marginTop: 16 }}>Exposición por tesis</div>
       {thesisParts.length ? <StackMeter parts={[...thesisParts, { k: "Caja", w: Math.max(0, d.cash) / (d.equity || 1), color: "var(--cash)" }]} /> : <p className="muted">Todo en caja.</p>}
     </Card>

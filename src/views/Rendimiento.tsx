@@ -2,9 +2,11 @@ import { num, pct, sPct, tone } from "../metrics";
 import { BenchChart, CalendarHeat, DrawdownChart, ExcessChart, MonthlyTable } from "../charts";
 import { Card, Empty, NeedsData, Stat } from "../ui";
 import type { ViewProps } from "./shared";
+import { useState } from "react";
 
 export default function Rendimiento({ m }: ViewProps) {
-  const b = m.bench;
+  const [bi, setBi] = useState(0);
+  const b = m.benches[bi] ?? m.bench;
   return <div className="grid">
     <div className="periods span-12">
       {m.periods.map(p => <div key={p.k} className="glass period rise"><span>{p.k === "Hoy" ? "Última sesión" : p.k}</span><b className={tone(p.v)}>{sPct(p.v, 2)}</b></div>)}
@@ -12,7 +14,9 @@ export default function Rendimiento({ m }: ViewProps) {
     </div>
 
     <Card title={b ? `Cartera frente a ${b.name}` : "Cartera frente a su índice"} icon="trend" sub="Ambas series en base 100 desde el primer dato común" className="span-8 rise"
-      right={b ? <div className="lgd"><span><i className="ln" />Cartera</span><span><i className="ln b" />{b.name}</span></div> : undefined}>
+      right={b ? <div className="lgd">
+        {m.benches.length > 1 && <span className="seg">{m.benches.map((x, i) => <button key={x.name} className={i === bi ? "on" : ""} onClick={() => setBi(i)}>{x.name.split(" (")[0].replace("S&P 500 · ", "")}</button>)}</span>}
+        <span><i className="ln" />Cartera</span><span><i className="ln b" />{b.name}</span></div> : undefined}>
       {b ? <>
         <BenchChart series={b.series} name={b.name} />
         <div className="lbl" style={{ marginTop: 6 }}>Diferencia acumulada (puntos porcentuales)</div>
@@ -39,17 +43,17 @@ export default function Rendimiento({ m }: ViewProps) {
     </Card>
 
     <Card title="Rentabilidad mensual" icon="calendar" sub="Cada mes frente al cierre del anterior · el primero frente al libro de partida" className="span-12 rise">
-      {m.monthly.length ? <MonthlyTable rows={m.monthly} /> : <Empty icon="calendar" title="Sin meses cerrados todavía" />}
+      {m.monthly.length ? <MonthlyTable rows={m.monthly} start={m.data.start} /> : <Empty icon="calendar" title="Sin meses cerrados todavía" />}
     </Card>
 
     <Card title="Calendario de rendimiento" icon="calendar" sub="Resultado de cada sesión" className="span-7 rise">
-      <CalendarHeat daily={m.daily} />
+      <CalendarHeat daily={m.daily} start={m.data.start} />
     </Card>
     <Card title="Bajo el agua" icon="down" sub="Caída desde el máximo previo" className="span-5 rise">
       <DrawdownChart data={m.curve} />
       <dl className="stats three">
         <Stat k="Volatilidad anual." v={m.vol == null ? "—" : pct(m.vol)} help="Desviación típica de las sesiones × √252" />
-        <Stat k="Sharpe" v={num(m.sharpe)} help={`Rentabilidad sobre volatilidad, anualizada${m.data.rf ? ` (rf ${pct(m.data.rf)})` : " (sin tipo libre de riesgo)"}`} />
+        <Stat k="Sharpe" v={num(m.sharpe)} help={`Rentabilidad sobre volatilidad, anualizada${m.data.rf ? ` (rf ${pct(m.data.rf)} · ${m.data.rf_src ?? ""})` : " (sin tipo libre de riesgo)"}`} />
         <Stat k="Sortino" v={num(m.sortino)} help="Como Sharpe, pero solo penaliza la volatilidad a la baja" />
         <Stat k="Calmar" v={num(m.calmar)} help="Rentabilidad anualizada / drawdown máximo (con 90 días o más)" />
         <Stat k="Mejor sesión" v={m.bestDay ? sPct(m.bestDay.ret, 2) : "—"} c={tone(m.bestDay?.ret)} />

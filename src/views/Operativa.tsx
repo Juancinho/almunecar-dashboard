@@ -11,7 +11,7 @@ function downloadCsv(rows: (string | number | null)[][], name: string) {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-export default function Operativa({ m, open }: ViewProps) {
+export default function Operativa({ d, m, open }: ViewProps) {
   const [side, setSide] = useState<"ALL" | "BUY" | "SELL">("ALL");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState(15);
@@ -73,6 +73,15 @@ export default function Operativa({ m, open }: ViewProps) {
         </tr>)}</tbody></table></div> : <Empty icon="layers" title="Aún no se ha operado ningún valor" />}
     </Card>
 
+    <Card title="Órdenes vivas en IBKR" icon="list" sub="Entradas pendientes, stops adjuntos y salidas en el bróker" className="span-12 rise">
+      {d.orders && d.orders.length ? <div className="tw"><table>
+        <thead><tr><th>Valor</th><th>Lado</th><th>Tipo</th><th className="n">Cant.</th><th className="n">Precio</th><th>Estado</th><th>Colocada</th></tr></thead>
+        <tbody>{d.orders.map((o, i) => <tr key={i} onClick={() => open(o.symbol)} className="click">
+          <td><b>{o.symbol}</b></td><td><span className={`side ${o.side === "BUY" ? "buy" : "sell"}`}>{o.side === "BUY" ? "Compra" : "Venta"}</span></td>
+          <td>{o.type}</td><td className="n">{o.qty}</td><td className="n">{o.price != null ? f2(o.price) : "—"}</td><td><span className="tag">{o.status}</span></td>
+          <td className="muted">{o.placed ? longDate(o.placed) : "—"}</td></tr>)}</tbody></table></div>
+        : <Empty icon="list" title="Ninguna orden viva">{d.orders ? "Consultado a IBKR en la última actualización." : "Sin conexión con IBKR en la última actualización."}</Empty>}
+    </Card>
     <Card title="Registro de operaciones" icon="list" sub={`${m.trades.length} en total`} className="span-12 rise"
       right={m.trades.length ? <div className="log-ctl">
         <label className="search"><Icon n="search" s={15} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar valor, tesis o motivo" /></label>

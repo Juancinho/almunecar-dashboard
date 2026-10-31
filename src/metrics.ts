@@ -191,33 +191,36 @@ export function compute(src: Data) {
   }).sort((a, b) => b.pnl + (b.open?.pnl_eur ?? 0) - (a.pnl + (a.open?.pnl_eur ?? 0)));
 
   // ---------- Índice de referencia: alpha, beta… ----------
-  let bench = null as null | {
+  // Índices de referencia: el principal (d.bench, MSCI ACWI en EUR) y los secundarios (d.bench.secondary)
+  type BenchM = {
     name: string; series: { t: string; p: number; b: number; ex: number }[]; totalP: number; totalB: number; n: number;
     beta: number | null; alpha: number | null; corr: number | null; te: number | null; ir: number | null; upCap: number | null; downCap: number | null;
   };
-  if (d.bench && d.bench.curve.length >= 2) {
-    const bAt = new Map(d.bench.curve.map(p => [iso(p.t), p.eq]));
+  const benchOf = (src: { name: string; curve: { t: string; eq: number }[] }): BenchM | null => {
+    if (src.curve.length < 2) return null;
+    const bAt = new Map(src.curve.map(p => [iso(p.t), p.eq]));
     const both = curve.filter(c => bAt.has(c.t));
-    if (both.length >= 2) {
-      const p0 = both[0].eq, b0 = bAt.get(both[0].t)!;
-      const series = both.map(c => { const p = (c.eq / p0) * 100, b = (bAt.get(c.t)! / b0) * 100; return { t: c.t, p, b, ex: p - b }; });
-      const bDay = new Map<string, number>(); for (const s of series) bDay.set(s.t.slice(0, 10), s.b);
-      const pDay = new Map<string, number>(); for (const s of series) pDay.set(s.t.slice(0, 10), s.p);
-      const days = [...pDay.keys()], rp: number[] = [], rb: number[] = [];
-      for (let i = 1; i < days.length; i++) { rp.push(pDay.get(days[i])! / pDay.get(days[i - 1])! - 1); rb.push(bDay.get(days[i])! / bDay.get(days[i - 1])! - 1); }
-      const ok = rp.length >= 10, vb = std(rb) ** 2;
-      const beta = ok && vb > 0 ? cov(rp, rb) / vb : null;
-      const ex = rp.map((r, i) => r - rb[i]), te = ok ? std(ex) * Math.sqrt(252) : null;
-      const up = rb.map((r, i) => [r, rp[i]]).filter(x => x[0] > 0), dn = rb.map((r, i) => [r, rp[i]]).filter(x => x[0] < 0);
-      const last = series[series.length - 1];
-      bench = { name: d.bench.name, series, totalP: last.p / 100 - 1, totalB: last.b / 100 - 1, n: rp.length, beta,
-        alpha: beta != null ? (mean(rp) - rfD - beta * (mean(rb) - rfD)) * 252 : null,
-        corr: ok && std(rp) > 0 && std(rb) > 0 ? cov(rp, rb) / (std(rp) * std(rb)) : null,
-        te, ir: te ? (mean(ex) * 252) / te : null,
-        upCap: ok && up.length ? ratioOrNull(mean(up.map(x => x[1])), mean(up.map(x => x[0]))) : null,
-        downCap: ok && dn.length ? ratioOrNull(mean(dn.map(x => x[1])), mean(dn.map(x => x[0]))) : null };
-    }
-  }
+    if (both.length < 2) return null;
+    const p0 = both[0].eq, b0 = bAt.get(both[0].t)!;
+    const series = both.map(c => { const p = (c.eq / p0) * 100, b = (bAt.get(c.t)! / b0) * 100; return { t: c.t, p, b, ex: p - b }; });
+    const bDay = new Map<string, number>(); for (const s of series) bDay.set(s.t.slice(0, 10), s.b);
+    const pDay = new Map<string, number>(); for (const s of series) pDay.set(s.t.slice(0, 10), s.p);
+    const days = [...pDay.keys()], rp: number[] = [], rb: number[] = [];
+    for (let i = 1; i < days.length; i++) { rp.push(pDay.get(days[i])! / pDay.get(days[i - 1])! - 1); rb.push(bDay.get(days[i])! / bDay.get(days[i - 1])! - 1); }
+    const ok = rp.length >= 10, vb = std(rb) ** 2;
+    const beta = ok && vb > 0 ? cov(rp, rb) / vb : null;
+    const ex = rp.map((r, i) => r - rb[i]), te = ok ? std(ex) * Math.sqrt(252) : null;
+    const up = rb.map((r, i) => [r, rp[i]]).filter(x => x[0] > 0), dn = rb.map((r, i) => [r, rp[i]]).filter(x => x[0] < 0);
+    const last = series[series.length - 1];
+    return { name: src.name, series, totalP: last.p / 100 - 1, totalB: last.b / 100 - 1, n: rp.length, beta,
+      alpha: beta != null ? (mean(rp) - rfD - beta * (mean(rb) - rfD)) * 252 : null,
+      corr: ok && std(rp) > 0 && std(rb) > 0 ? cov(rp, rb) / (std(rp) * std(rb)) : null,
+      te, ir: te ? (mean(ex) * 252) / te : null,
+      upCap: ok && up.length ? ratioOrNull(mean(up.map(x => x[1])), mean(up.map(x => x[0]))) : null,
+      downCap: ok && dn.length ? ratioOrNull(mean(dn.map(x => x[1])), mean(dn.map(x => x[0]))) : null };
+  };
+  const benches = d.bench ? [d.bench, ...(d.bench.secondary ?? [])].map(benchOf).filter((x): x is BenchM => x != null) : [];
+  const bench = d.bench && benches[0]?.name === d.bench.name ? benches[0] : null;
 
   return {
     pnl, ret: pnl / d.base, invested, exposure: d.equity > 0 ? invested / d.equity : 0, halt,
@@ -236,7 +239,7 @@ export function compute(src: Data) {
     byReason, pnlBins, bySymbol,
     positions, unrealized, byThesis, fx, fxSrc, openRisk, openReward, stopEq: d.equity - openRisk, targetEq: d.equity + openReward, effN,
     maxWeight: positions.length ? Math.max(...positions.map(p => p.eqWeight)) : 0,
-    bench,
+    bench, benches,
     // Las claves "Total …" son resúmenes que escribe el box, no componentes
     friction: Object.entries(d.friction).filter(([k]) => !/^total/i.test(k)).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v),
     frictionTotals: Object.entries(d.friction).filter(([k]) => /^total/i.test(k)).map(([k, v]) => ({ k, v })),
