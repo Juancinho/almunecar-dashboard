@@ -41,16 +41,16 @@ export default function Plan({ d, m, open }: ViewProps) {
     <Card title="Intel del briefing" icon="book" sub={d.intel?.generated_at ? `intel.json · ${longDate(d.intel.generated_at)}` : "intel.json"} className="span-12 rise">
       {!d.intel ? <Empty icon="book" title="Sin intel publicado" /> : <>
         {d.intel.stale && <p className="warn-line">⚠ {d.intel.warn}. Todas las entradas quedan bloqueadas hasta el próximo briefing.</p>}
-        <div className="tw"><table>
+        <div className="tw"><table className="intel">
           <thead><tr><th>Valor</th><th>Tesis</th><th>Postura</th><th className="n">Convicción</th><th>¿Puede entrar?</th><th>Nota</th></tr></thead>
           <tbody>{Object.entries(d.intel.instruments).map(([s, x]) => {
             const bl = d.intel!.blackouts.find(b => b.active && (!b.symbol || b.symbol === s));
             const ok = x.stance === "long" && !bl && !d.intel!.stale;
             return <tr key={s} onClick={() => open(s)} className="click"><td><b>{s}</b>{d.plan?.candidates.includes(s) && <span className="muted"> · candidato</span>}</td>
               <td><span className="tag">{x.thesis}</span></td><td><span className={`tag ${x.stance === "long" ? "pos" : x.stance === "avoid" ? "neg" : ""}`}>{({ long: "Largo", neutral: "Neutral", avoid: "Evitar" } as Record<string, string>)[x.stance] ?? x.stance}</span></td>
-              <td className="n">{x.conviction != null ? pct(x.conviction, 0) : "—"}</td>
+              <td className="n" data-label="Convicción">{x.conviction != null ? pct(x.conviction, 0) : "—"}</td>
               <td className={ok ? "pos" : "muted"}>{ok ? "Sí, si hay señal e intradía favorable" : bl ? "No · blackout" : x.stance === "long" ? "No" : `No · postura ${x.stance}`}</td>
-              <td className="muted">{x.notes ?? ""}</td></tr>;
+              <td className="muted">{x.notes || null}</td></tr>;
           })}</tbody></table></div>
         <div className="lbl" style={{ marginTop: 16 }}>Blackouts por eventos</div>
         {d.intel.blackouts.length ? <ul className="evals events">{d.intel.blackouts.map((b, i) => <li key={i}>
