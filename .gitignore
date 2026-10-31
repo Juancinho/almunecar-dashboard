@@ -1,0 +1,6 @@
+node_modules
+dist
+# datos descifrados de prueba: NUNCA se suben
+public/mock.json
+*.local.json
+*.tsbuildinfo

@@ -1,0 +1,28 @@
+/* Almuñécar Capital – paleta de los briefings (chartstyle.py) */
+:root{--navy:#1F3A5F;--steel:#5B7FA6;--grey:#9AA5B1;--gold:#B07D3A;--green:#3E6B5A;--red:#7A3E3E;--ink:#222A33;--muted:#6B7280;--rule:#E3E7EC;--paper:#FBFAF7}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 "Source Sans Pro","Source Sans 3",system-ui,sans-serif}
+header{background:var(--navy);color:#fff;padding:22px 32px;display:flex;align-items:center;gap:18px;border-bottom:4px solid var(--gold)}
+header img{height:46px;background:#fff;border-radius:4px;padding:4px}header h1{margin:0;font:600 22px Georgia,serif;letter-spacing:.3px}
+header .sub{font-size:13px;opacity:.8}header .upd{margin-left:auto;text-align:right;font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:24px 32px 60px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--grey);border-bottom:1px solid var(--grey);margin-bottom:28px}
+.kpi{padding:14px 16px;border-right:1px solid var(--rule)}.kpi:last-child{border-right:0}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}.kpi .v{font:600 26px Georgia,serif;color:var(--navy)}
+.pos{color:var(--green)}.neg{color:var(--red)}
+h2{font:600 17px Georgia,serif;color:var(--navy);border-bottom:2px solid var(--navy);padding-bottom:4px;margin:30px 0 12px}
+.gauge{position:relative;height:34px;background:linear-gradient(90deg,#fff 0,#fff 100%);border:1px solid var(--grey);margin:8px 0 4px}
+.gauge .fill{position:absolute;top:0;bottom:0;left:0;background:var(--red);opacity:.75}.gauge .halt{position:absolute;right:0;top:-6px;bottom:-6px;border-right:3px solid var(--red)}
+.gauge-l{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--grey);padding:6px}
+td{border-bottom:1px solid var(--rule);padding:7px 6px;vertical-align:top}td.n{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;background:var(--navy);color:#fff;border-radius:2px;font-size:11px;padding:1px 6px}
+.stopbar{height:6px;background:var(--rule);position:relative;min-width:120px;margin-top:6px}.stopbar i{position:absolute;top:-3px;width:2px;height:12px}
+.note{font-size:12px;color:var(--muted)}.empty{color:var(--muted);font-style:italic}
+.halted{background:var(--red);color:#fff;padding:12px 16px;font-weight:600}
+svg text{font:11px "Source Sans Pro",sans-serif;fill:var(--muted)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--rule);padding-top:10px;margin-top:40px}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}main,header{padding:16px}}
+.lock{min-height:100vh;display:grid;place-items:center}.lock form{background:var(--navy);color:#fff;border-top:4px solid var(--gold);padding:28px 32px;width:min(340px,92vw)}
+.lock img{height:42px;background:#fff;border-radius:4px;padding:4px}.lock h1{font:600 19px Georgia,serif;margin:14px 0 4px}.lock p{margin:0 0 8px;opacity:.8}
+.lock input,.lock button{width:100%;padding:10px;margin-top:8px;border:0;font-size:15px}.lock button{background:var(--gold);color:#fff;cursor:pointer}.err{color:#f3c4c4;font-size:13px;min-height:18px;margin-top:6px}
+.chart{background:#fff;border:1px solid var(--rule);padding:8px 4px}.tw{overflow-x:auto}.gauge .fill{position:absolute;top:0;bottom:0;left:0;background:var(--red);opacity:.75}
