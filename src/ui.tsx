@@ -65,6 +65,16 @@ const P: Record<string, string> = {
   book: "M4 4.75c0-.69.56-1.25 1.25-1.25H16v12H5.25C4.56 15.5 4 16.06 4 16.75M4 4.75v12M7 7h6",
   down: "M10 4v12M5.5 11.5 10 16l4.5-4.5",
   alert: "M10 7.25v3.5M10 13.5h.01M8.68 3.27 2.38 14.5c-.58 1.03.16 2.25 1.32 2.25h12.6c1.16 0 1.9-1.22 1.32-2.25L11.32 3.27a1.5 1.5 0 0 0-2.64 0Z",
+  home: "M3.5 9 10 3.5 16.5 9v6.75c0 .41-.34.75-.75.75H12.5v-4.5h-5v4.5H4.25a.75.75 0 0 1-.75-.75V9Z",
+  trend: "M3 14.5 7.5 10l3 3 6.5-6.5M12.5 6.5H17V11",
+  scale: "M10 3.5v13M5.5 16.5h9M3.5 7.5h13M3.5 7.5 1.75 12a2 2 0 0 0 3.5 0L3.5 7.5ZM16.5 7.5 14.75 12a2 2 0 0 0 3.5 0L16.5 7.5Z",
+  bolt: "M11 2.75 4.5 11.25h5l-1 6 6.5-8.5h-5l1-6Z",
+  flag: "M4.5 17V3.5M4.5 4h9.25l-1.75 3.5 1.75 3.5H4.5",
+  x: "M5 5l10 10M15 5 5 15",
+  download: "M10 3.5v9M6 8.5l4 4 4-4M4 15.5h12",
+  cpu: "M6.5 4.5h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2ZM8 8h4v4H8V8ZM8 2v2.5M12 2v2.5M8 15.5V18M12 15.5V18M2 8h2.5M2 12h2.5M15.5 8H18M15.5 12H18",
+  info: "M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM10 9v4.5M10 6.5h.01",
+  hist: "M3.5 16.5h13M5 16.5V11M8.5 16.5V6M12 16.5V8.5M15.5 16.5V12.5",
 };
 export function Icon({ n, s = 18 }: { n: keyof typeof P | string; s?: number }) {
   return <svg width={s} height={s} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={P[n]} /></svg>;
@@ -89,6 +99,69 @@ export function Seg<T extends string>({ value, options, onChange, label }: { val
 
 export function Empty({ icon, title, children }: { icon: string; title: string; children?: React.ReactNode }) {
   return <div className="empty"><span className="empty-i"><Icon n={icon} s={22} /></span><b>{title}</b>{children && <p>{children}</p>}</div>;
+}
+
+/* Aviso de que una tarjeta depende de un campo v2 que el bot aún no publica */
+export function NeedsData({ field, children }: { field: string; children: React.ReactNode }) {
+  return <div className="empty needs"><span className="empty-i"><Icon n="cpu" s={22} /></span><b>Pendiente de datos del bot</b>
+    <p>{children}</p><code>{field}</code></div>;
+}
+
+/* ---------- Reloj compartido para tiempos relativos ---------- */
+export function useNow(ms = 30_000) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), ms); return () => clearInterval(id); }, [ms]);
+  return now;
+}
+
+/* ---------- Pestañas sincronizadas con el hash (#rendimiento…) ---------- */
+export function useHashTab<T extends string>(tabs: readonly T[], def: T): [T, (t: T) => void] {
+  const read = () => { const h = location.hash.slice(1) as T; return tabs.includes(h) ? h : def; };
+  const [tab, setTab] = useState<T>(read);
+  useEffect(() => { const on = () => setTab(read()); window.addEventListener("hashchange", on); return () => window.removeEventListener("hashchange", on); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return [tab, (t: T) => { if (t !== tab) { history.pushState(null, "", `#${t}`); setTab(t); } window.scrollTo({ top: 0, behavior: "smooth" }); }];
+}
+
+/** Barra de pestañas con una píldora de cristal que se desliza a la activa */
+export function Tabs<T extends string>({ tabs, value, onChange, className = "" }: { tabs: { v: T; l: string; i: string }[]; value: T; onChange: (t: T) => void; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; w: number } | null>(null);
+  useEffect(() => {
+    const place = () => { const el = ref.current?.querySelector<HTMLElement>(`[data-v="${value}"]`); if (el) setPill({ x: el.offsetLeft, w: el.offsetWidth }); };
+    place(); const ro = new ResizeObserver(place); if (ref.current) ro.observe(ref.current); return () => ro.disconnect();
+  }, [value]);
+  return <div className={`tabs ${className}`} ref={ref} role="tablist">
+    {pill && <span className="tabs-pill" style={{ transform: `translateX(${pill.x}px)`, width: pill.w }} />}
+    {tabs.map(t => <button key={t.v} data-v={t.v} role="tab" aria-selected={t.v === value} className={t.v === value ? "on" : ""} onClick={() => onChange(t.v)}>
+      <Icon n={t.i} s={17} /><span>{t.l}</span></button>)}
+  </div>;
+}
+
+/* ---------- Hoja modal de cristal ---------- */
+export function Sheet({ open, onClose, children, title }: { open: boolean; onClose: () => void; children: React.ReactNode; title: string }) {
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k);
+    const o = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", k); document.body.style.overflow = o; };
+  }, [open, onClose]);
+  if (!open) return null;
+  return <div className="sheet-wrap" onMouseDown={e => e.target === e.currentTarget && onClose()} role="dialog" aria-modal="true" aria-label={title}>
+    <div className="glass sheet"><button className="ibtn sheet-x" onClick={onClose} aria-label="Cerrar"><Icon n="x" /></button>{children}</div>
+  </div>;
+}
+
+/* ---------- Avisos efímeros ---------- */
+export interface ToastMsg { id: number; icon: string; title: string; body?: string; tone?: "pos" | "neg" | "" }
+export function Toasts({ items, onDone }: { items: ToastMsg[]; onDone: (id: number) => void }) {
+  useEffect(() => { if (!items.length) return; const t = setTimeout(() => onDone(items[0].id), 6000); return () => clearTimeout(t); }, [items, onDone]);
+  return <div className="toasts" aria-live="polite">{items.map(t => <div key={t.id} className={`glass toast ${t.tone ?? ""}`} onClick={() => onDone(t.id)}>
+    <span className="toast-i"><Icon n={t.icon} s={18} /></span><div><b>{t.title}</b>{t.body && <p>{t.body}</p>}</div></div>)}</div>;
+}
+
+/** Celda de métrica con etiqueta, valor y ayuda opcional al pasar el ratón */
+export function Stat({ k, v, c = "", help, sub }: { k: string; v: React.ReactNode; c?: string; help?: string; sub?: React.ReactNode }) {
+  return <div className="stat" title={help}><dt>{k}{help && <Icon n="info" s={12} />}</dt><dd className={c}>{v}</dd>{sub && <small>{sub}</small>}</div>;
 }
 
 /* ---------- Fondo: malla de luz detrás del cristal ---------- */

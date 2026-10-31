@@ -15,9 +15,11 @@ npm run dev          # http://localhost:5173 · contraseña "mock"
 - `public/mock.json` está en .gitignore: **no lo subas nunca**. El atajo `mock` solo existe en modo `dev`.
 - Estructura:
   - `src/App.tsx`: pantalla de acceso, descifrado y refresco automático cada 2 min (la contraseña solo vive en memoria).
-  - `src/Dashboard.tsx`: secciones del panel. `src/charts.tsx`: gráficos (Recharts + SVG). `src/ui.tsx`: tarjetas, iconos, tema.
+  - `src/Dashboard.tsx`: armazón con pestañas (Resumen, Rendimiento, Riesgo, Operativa, Plan), ficha de posición y avisos. Cada pestaña vive en `src/views/`.
+  - `src/charts.tsx`: gráficos (Recharts + SVG). `src/ui.tsx`: tarjetas, pestañas, hoja modal, iconos, tema.
   - `src/metrics.ts`: métricas derivadas en el navegador (drawdown, Sharpe, acierto, profit factor…) y normalización de fechas.
   - `src/style.css`: tema *liquid glass* claro/oscuro. El color corporativo es el marino #1F3A5F; la paleta de series está validada para daltonismo.
   - `src/Logo.tsx` inyecta `public/logo.svg` en línea para que sus tintas sigan al tema; no edites el SVG.
 - No cambies `src/crypto.ts` ni los nombres de campos de `src/types.ts`, porque los usa el script del box.
+- Campos opcionales que el panel ya sabe usar si el box los envía (índice de referencia, cambio EUR/USD, órdenes vivas, latido del bot…): [docs/datos-v2.md](docs/datos-v2.md).
 - No subas nunca datos en claro (`*.json` que no esté cifrado) ni identificadores de cuenta.

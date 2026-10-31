@@ -1,12 +1,12 @@
-import { useId, useMemo, useState } from "react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, ReferenceLine, Tooltip, CartesianGrid, ComposedChart, Bar, Line, Cell, PieChart, Pie } from "recharts";
-import type { CurvePt, DayRet, Metrics } from "./metrics";
-import { eur, eur0, f2, longDate, pct, sEur, sPct, shortDate, tone } from "./metrics";
+import { Fragment, useId, useMemo, useState } from "react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, ReferenceLine, Tooltip, CartesianGrid, ComposedChart, Bar, BarChart, Line, LineChart, Cell, PieChart, Pie } from "recharts";
+import type { Bin, CurvePt, DayRet, Metrics, PosX } from "./metrics";
+import { eur, eur0, f2, longDate, MONTHS, num, pct, sEur, sPct, shortDate, tone } from "./metrics";
 
 const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const anim = { isAnimationActive: !reduce, animationDuration: 900, animationEasing: "ease-out" as const };
 const axis = { tick: { fontSize: 11, fill: "var(--ink-3)" }, tickLine: false, axisLine: false };
-const xFmt = (data: CurvePt[]) => data.length && data[0].t.slice(0, 10) === data[data.length - 1].t.slice(0, 10) ? (t: string) => t.slice(11, 16) : shortDate;
+const xFmt = (data: { t: string }[]) => data.length && data[0].t.slice(0, 10) === data[data.length - 1].t.slice(0, 10) ? (t: string) => t.slice(11, 16) : shortDate;
 export const SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)"];
 
 /* ---------- Tooltip de cristal ---------- */
@@ -69,7 +69,7 @@ export function DrawdownChart({ data }: { data: CurvePt[] }) {
       </linearGradient></defs>
       <CartesianGrid stroke="var(--grid)" vertical={false} />
       <XAxis dataKey="t" {...axis} tickFormatter={xFmt(data)} minTickGap={56} dy={6} />
-      <YAxis {...axis} domain={[lo * 1.15, 0]} tickFormatter={v => pct(v, 0)} width={48} orientation="right" />
+      <YAxis {...axis} domain={[lo * 1.15, 0]} tickFormatter={v => pct(v, lo > -0.05 ? 1 : 0)} width={52} orientation="right" />
       <Tooltip cursor={{ stroke: "var(--neg)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
         if (!active || !payload?.length) return null; const p = payload[0].payload as CurvePt;
         return <Tip title={longDate(p.t)} rows={[{ k: "Caída desde máximo", v: sPct(p.dd), c: p.dd < 0 ? "neg" : "", dot: "var(--neg)" }, { k: "Máximo previo", v: eur(p.peak) }]} />;
@@ -80,8 +80,8 @@ export function DrawdownChart({ data }: { data: CurvePt[] }) {
 }
 
 /* ---------- P&L realizado por operación + acumulado (mismo eje, mismas unidades) ---------- */
-export function TradePnlChart({ data }: { data: Metrics["realizedSeries"] }) {
-  return <ResponsiveContainer width="100%" height={260}>
+export function TradePnlChart({ data, height = 260 }: { data: Metrics["realizedSeries"]; height?: number }) {
+  return <ResponsiveContainer width="100%" height={height}>
     <ComposedChart data={data} margin={{ top: 12, right: 4, left: 0, bottom: 0 }} barCategoryGap="22%">
       <CartesianGrid stroke="var(--grid)" vertical={false} />
       <XAxis dataKey="i" {...axis} tickFormatter={v => `#${v}`} minTickGap={16} dy={6} />
@@ -247,6 +247,124 @@ export function HBars({ rows, fmt }: { rows: { k: string; v: number }[]; fmt: (v
     <div className="hbars-l"><span>{r.k}</span><b>{fmt(r.v)}</b><em>{total ? pct(r.v / total, 0) : ""}</em></div>
     <div className="hbars-t"><i style={{ width: `${(r.v / max) * 100}%` }} /></div>
   </li>)}</ul>;
+}
+
+/* ---------- Cartera vs índice, ambos en base 100 (un solo eje) ---------- */
+export function BenchChart({ series, name }: { series: NonNullable<Metrics["bench"]>["series"]; name: string }) {
+  const vals = series.flatMap(s => [s.p, s.b]), lo = Math.min(100, ...vals), hi = Math.max(100, ...vals), pad = Math.max((hi - lo) * 0.1, 0.4);
+  return <ResponsiveContainer width="100%" height={280}>
+    <LineChart data={series} margin={{ top: 12, right: 4, left: 0, bottom: 0 }}>
+      <CartesianGrid stroke="var(--grid)" vertical={false} />
+      <XAxis dataKey="t" {...axis} tickFormatter={xFmt(series)} minTickGap={56} dy={6} />
+      <YAxis {...axis} domain={[lo - pad, hi + pad]} tickFormatter={v => num(v, 0)} width={44} orientation="right" />
+      <ReferenceLine y={100} stroke="var(--ink-3)" strokeDasharray="3 5" strokeOpacity={0.6} />
+      <Tooltip cursor={{ stroke: "var(--accent)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
+        if (!active || !payload?.length) return null; const p = payload[0].payload as (typeof series)[number];
+        return <Tip title={longDate(p.t)} rows={[{ k: "Cartera", v: sPct(p.p / 100 - 1, 2), dot: "var(--accent)", c: tone(p.p - 100) },
+          { k: name, v: sPct(p.b / 100 - 1, 2), dot: "var(--s2)", c: tone(p.b - 100) }, { k: "Diferencia", v: `${p.ex >= 0 ? "+" : "−"}${num(Math.abs(p.ex), 2)} pp`, c: tone(p.ex) }]} />;
+      }} />
+      <Line type="monotone" dataKey="b" stroke="var(--s2)" strokeWidth={1.75} dot={false} activeDot={{ r: 4, stroke: "var(--surface)", strokeWidth: 2 }} {...anim} />
+      <Line type="monotone" dataKey="p" stroke="var(--accent)" strokeWidth={2.25} dot={false} activeDot={{ r: 5, stroke: "var(--surface)", strokeWidth: 2 }} {...anim} />
+    </LineChart>
+  </ResponsiveContainer>;
+}
+
+/* Diferencial acumulado: verde por encima de 0, rojo por debajo (gradiente partido en el cero) */
+export function ExcessChart({ series }: { series: NonNullable<Metrics["bench"]>["series"] }) {
+  const id = useId().replace(/:/g, "");
+  const hi = Math.max(0, ...series.map(s => s.ex)), lo = Math.min(0, ...series.map(s => s.ex));
+  const off = hi - lo ? hi / (hi - lo) : 0.5;
+  return <ResponsiveContainer width="100%" height={110}>
+    <AreaChart data={series} margin={{ top: 6, right: 4, left: 0, bottom: 0 }}>
+      <defs>
+        <linearGradient id={`xs${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset={off} stopColor="var(--pos)" /><stop offset={off} stopColor="var(--neg)" /></linearGradient>
+        <linearGradient id={`xf${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--pos)" stopOpacity={0.3} /><stop offset={off} stopColor="var(--pos)" stopOpacity={0.04} />
+          <stop offset={off} stopColor="var(--neg)" stopOpacity={0.04} /><stop offset="1" stopColor="var(--neg)" stopOpacity={0.3} /></linearGradient>
+      </defs>
+      <XAxis dataKey="t" hide /><YAxis {...axis} width={44} orientation="right" tickFormatter={v => `${num(v, 1)}`} tickCount={3} />
+      <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={0.5} />
+      <Tooltip cursor={{ stroke: "var(--ink-3)", strokeOpacity: 0.4 }} content={({ active, payload }) => {
+        if (!active || !payload?.length) return null; const p = payload[0].payload as (typeof series)[number];
+        return <Tip title={longDate(p.t)} rows={[{ k: "Diferencia acumulada", v: `${p.ex >= 0 ? "+" : "−"}${num(Math.abs(p.ex), 2)} pp`, c: tone(p.ex) }]} />;
+      }} />
+      <Area type="monotone" dataKey="ex" stroke={`url(#xs${id})`} strokeWidth={1.75} fill={`url(#xf${id})`} baseValue={0} {...anim} />
+    </AreaChart>
+  </ResponsiveContainer>;
+}
+
+/* ---------- Histograma (sesiones o resultados de operaciones) ---------- */
+export function Histogram({ data, tail, unit, height = 220 }: { data: Bin[]; tail?: number | null; unit: (b: Bin) => string; height?: number }) {
+  return <ResponsiveContainer width="100%" height={height}>
+    <BarChart data={data} margin={{ top: 10, right: 4, left: 0, bottom: 0 }} barCategoryGap={2}>
+      <CartesianGrid stroke="var(--grid)" vertical={false} />
+      <XAxis dataKey="label" {...axis} interval="preserveStartEnd" minTickGap={18} dy={6} />
+      <YAxis {...axis} allowDecimals={false} width={28} orientation="right" />
+      <Tooltip cursor={{ fill: "var(--hover)" }} content={({ active, payload }) => {
+        if (!active || !payload?.length) return null; const b = payload[0].payload as Bin;
+        return <Tip title={unit(b)} rows={[{ k: "Casos", v: String(b.n) }]} />;
+      }} />
+      <Bar dataKey="n" {...anim}>
+        {data.map(b => <Cell key={b.label} fill={b.hi <= 0 ? "var(--neg)" : b.lo >= 0 ? "var(--pos)" : "var(--ink-3)"}
+          fillOpacity={tail != null && b.hi <= -tail ? 1 : 0.6}
+          // @ts-expect-error radius por celda está soportado en runtime
+          radius={[4, 4, 0, 0]} />)}
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>;
+}
+
+/* ---------- Rentabilidad mensual (tabla de calor) ---------- */
+export function MonthlyTable({ rows }: { rows: Metrics["monthly"] }) {
+  const max = Math.max(0.005, ...rows.flatMap(r => r.months.filter((x): x is number => x != null).map(Math.abs)));
+  const cell = (v: number | null) => v == null ? <td className="mt-c none" /> :
+    <td className={`mt-c ${v > 0 ? "up" : v < 0 ? "dn" : "flat"}`} style={{ ["--a" as string]: (0.18 + 0.82 * Math.min(1, Math.abs(v) / max)).toFixed(2) }}><span>{sPct(v)}</span></td>;
+  return <div className="tw"><table className="mt">
+    <thead><tr><th />{MONTHS.map(m => <th key={m}>{m}</th>)}<th>Año</th></tr></thead>
+    <tbody>{rows.map(r => <tr key={r.year}><th>{r.year}</th>{r.months.map((v, i) => <Fragment key={i}>{cell(v)}</Fragment>)}<td className={`mt-y ${tone(r.total)}`}>{sPct(r.total)}</td></tr>)}</tbody>
+  </table></div>;
+}
+
+/* ---------- Escenarios sobre una regla: freno · stops · actual · objetivos ---------- */
+export function ScenarioTrack({ halt, base, stopEq, eq, targetEq }: { halt: number; base: number; stopEq: number; eq: number; targetEq: number }) {
+  const lo = Math.min(halt, stopEq) - base * 0.02, hi = Math.max(targetEq, base, eq) + base * 0.02, at = (v: number) => `${((v - lo) / (hi - lo)) * 100}%`;
+  const marks = [
+    { k: "Freno", v: halt, c: "halt" }, { k: "Partida", v: base, c: "base" },
+    { k: "Stops", v: stopEq, c: "stop" }, { k: "Ahora", v: eq, c: "now" }, { k: "Objetivos", v: targetEq, c: "tgt" },
+  ].filter(x => x.c === "now" || x.c === "halt" || Math.abs(x.v - eq) > 0.005).sort((a, b) => a.v - b.v);
+  // Etiquetas arriba o abajo de la regla, alternando cuando dos quedarían pegadas
+  const pos = (v: number) => ((v - lo) / (hi - lo)) * 100, last = { hi: -99, lo: -99 };
+  const side = marks.map(m => { const p = pos(m.v), s = p - last.hi >= 18 || p - last.lo < 18 ? "hi" : "lo"; last[s] = p; return s; });
+  return <div className="scn">
+    <div className="scn-t">
+      <i className="scn-zone" style={{ left: 0, width: at(halt) }} />
+      <i className="scn-band dn" style={{ left: at(stopEq), width: `calc(${at(eq)} - ${at(stopEq)})` }} />
+      <i className="scn-band up" style={{ left: at(eq), width: `calc(${at(targetEq)} - ${at(eq)})` }} />
+      {marks.map(m => <i key={m.k} className={`scn-m ${m.c}`} style={{ left: at(m.v) }} />)}
+    </div>
+    <div className="scn-l">{marks.map((m, i) => <div key={m.k} className={`scn-lab ${m.c} ${side[i]}`} style={{ left: at(m.v) }}><span>{m.k}</span><b>{eur0(m.v)}</b></div>)}</div>
+    <ul className="scn-list">{marks.map(m => <li key={m.k} className={m.c}><i className={`scn-m ${m.c}`} /><span>{m.k}</span><b>{eur0(m.v)}</b></li>)}</ul>
+  </div>;
+}
+
+/* ---------- Riesgo y recompensa por posición (en euros, divergente desde el centro) ---------- */
+export function RiskReward({ positions, onOpen }: { positions: PosX[]; onOpen?: (s: string) => void }) {
+  const max = Math.max(0.01, ...positions.flatMap(p => [Math.abs(p.riskEur), Math.abs(p.rewardEur)]));
+  return <ul className="rrb">{positions.map(p => <li key={p.symbol} onClick={() => onOpen?.(p.symbol)}>
+    <b>{p.symbol}</b>
+    <em className="neg">{sEur(-Math.max(0, p.riskEur))}</em>
+    <div className="rrb-t"><i className="dn" style={{ width: `${(Math.max(0, p.riskEur) / max) * 50}%` }} /><i className="up" style={{ width: `${(Math.max(0, p.rewardEur) / max) * 50}%` }} /></div>
+    <em className="pos">{sEur(Math.max(0, p.rewardEur))}</em>
+    <span className="muted">{p.rr == null ? "—" : `${num(p.rr, 1)}R`}</span>
+  </li>)}</ul>;
+}
+
+/* ---------- Barra apilada con huecos de 2 px ---------- */
+export function StackMeter({ parts }: { parts: { k: string; w: number; color: string; v?: string }[] }) {
+  const shown = parts.filter(p => p.w > 0.0005);
+  return <div className="stackm">
+    <div className="stackm-t">{shown.map(p => <i key={p.k} style={{ flexGrow: p.w, background: p.color }} title={`${p.k} · ${pct(p.w)}`} />)}</div>
+    <ul className="legend compact">{shown.map(p => <li key={p.k}><i style={{ background: p.color }} /><span>{p.k}</span><b>{pct(p.w)}</b><em>{p.v ?? ""}</em></li>)}</ul>
+  </div>;
 }
 
 export { f2 };
