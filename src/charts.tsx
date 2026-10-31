@@ -195,9 +195,13 @@ export function CalendarHeat({ daily, weeks: maxWeeks = 18, start }: { daily: Da
     const last = daily.length ? new Date(daily[daily.length - 1].day + "T12:00") : new Date();
     // empieza en la semana de arranque del bot (start), sin columnas vacías anteriores
     const lastMon = new Date(last); lastMon.setDate(last.getDate() - ((last.getDay() + 6) % 7));
-    let weeks = maxWeeks;
-    if (start) { const s0 = new Date(start + "T12:00"); s0.setDate(s0.getDate() - ((s0.getDay() + 6) % 7)); weeks = Math.max(1, Math.min(maxWeeks, Math.round((lastMon.getTime() - s0.getTime()) / 6048e5) + 1)); }
-    const monday = new Date(lastMon); monday.setDate(lastMon.getDate() - (weeks - 1) * 7);
+    // empieza en la semana de arranque del bot (start); las semanas futuras quedan vacías hasta llenar la rejilla
+    let weeks = maxWeeks, monday = new Date(lastMon); monday.setDate(lastMon.getDate() - (weeks - 1) * 7);
+    if (start) {
+      const s0 = new Date(start + "T12:00"); s0.setDate(s0.getDate() - ((s0.getDay() + 6) % 7));
+      const span = Math.round((lastMon.getTime() - s0.getTime()) / 6048e5) + 1;
+      if (span < maxWeeks) { monday = s0; weeks = maxWeeks; }
+    }
     const maxAbs = Math.max(0.004, ...daily.map(d => Math.abs(d.ret)));
     const cols: { key: string; month: string | null; cells: ({ day: string; d?: DayRet; a: number } | null)[] }[] = [];
     let prevMonth = -1;

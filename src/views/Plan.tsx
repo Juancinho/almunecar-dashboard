@@ -54,11 +54,11 @@ export default function Plan({ d, m, open }: ViewProps) {
           })}</tbody></table></div>
         <div className="lbl" style={{ marginTop: 16 }}>Blackouts por eventos</div>
         {d.intel.blackouts.length ? <ul className="evals">{d.intel.blackouts.map((b, i) => <li key={i}>
-          <b>{b.active ? "ACTIVO" : longDate(b.start)}</b><span>{b.symbol ? `${b.symbol}: ` : ""}{b.reason}{b.verified ? "" : " (no verificado)"}</span><time>{hhmm(b.start)}–{hhmm(b.end)}</time></li>)}</ul>
+          <b>{b.active ? "ACTIVO" : longDate(b.start)}</b><span>{b.symbol ? `${b.symbol}: ` : ""}{b.reason}{b.verified || /verificad/i.test(b.reason) ? "" : " (no verificado)"}</span><time>{hhmm(b.start)}–{hhmm(b.end)}</time></li>)}</ul>
           : <p className="muted">Sin blackouts próximos.</p>}
         <div className="lbl" style={{ marginTop: 16 }}>Próximos catalizadores</div>
         {d.intel.catalysts.length ? <ul className="evals">{d.intel.catalysts.map((c, i) => <li key={i}>
-          <b>{c.date ? longDate(c.date) : "sin fecha"}</b><span>{c.symbol ? `${c.symbol}: ` : ""}{c.event}{c.verified ? "" : " (no verificado)"}</span>
+          <b>{c.date ? longDate(c.date) : "sin fecha"}</b><span>{c.symbol ? `${c.symbol}: ` : ""}{c.event}{c.verified || /verificad/i.test(c.event) ? "" : " (no verificado)"}</span>
           <time>{c.source ? <a href={c.source} target="_blank" rel="noreferrer">fuente</a> : ""}</time></li>)}</ul> : <p className="muted">Sin catalizadores.</p>}
       </>}
     </Card>
